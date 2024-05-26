@@ -80,3 +80,14 @@ class BoardTest(unittest.TestCase):
         self.assertEqual(State.UNDETERMINED, board.winner)
         board = board.move(6)
         self.assertEqual(State.X, board.winner)
+    
+    def test_compact_string(self):
+        board = Board()
+        board = board.move(0)
+        board = board.move(0)
+        board = board.move(1)
+        board = board.move(3)
+        board = board.move(1)
+        expected = "X X _ O _ _ _  O X _ _ _ _ _  _ _ _ _ _ _ _  _ _ _ _ _ _ _  _ _ _ _ _ _ _  _ _ _ _ _ _ _|F"
+        self.assertEqual(board.to_compact_string(), expected)
+        self.assertEqual(board, Board.from_string(expected))

@@ -8,6 +8,16 @@ class State:
     O = 2
     DRAW = 3
 
+class InvalidBoardStringException(Exception):
+    """Representing an exception raised when an invalid string is provided
+    in the factory method of `Board` class.
+    """
+    def __init__(self, message: str):
+        """Instantiates a new exception,
+        raised when an invalid string is provided to create a new `Board`.
+        """
+        super().__init__(message)
+
 class Board:
     def __init__(self, is_X_turn: bool=True,
                  X_table: Tuple[Tuple[bool, ...], ...]=None, O_table: Tuple[Tuple[bool, ...], ...]=None):
@@ -135,3 +145,82 @@ class Board:
 
     def __str__(self):
         return self.__repr__()
+    
+    def from_string(string: str) -> "Board":
+        """Returns a board represented by the string.
+        The string is the same as the string representation of the board,
+        but combined into one line, lines are separated by two space characters.
+        """
+        parts = string.split('|')
+        if len(parts) != 2:
+            raise InvalidBoardStringException("Incorrect number of parts by |, expect 2")
+
+        match parts[1]:
+            case "T":
+                is_X_turn = True
+            case "F":
+                is_X_turn = False
+            case _:
+                raise InvalidBoardStringException(f"Incorrect turn token \"{parts[1]}\"")
+        
+        string = parts[0]
+
+        items = string.split('  ')
+        if len(items) != height:
+            raise InvalidBoardStringException("Incorrect number of lines")
+        
+        X_table: List[Tuple[bool, ...]] = []
+        O_table: List[Tuple[bool, ...]] = []
+        for row in items:
+            X_row: List[bool] = []
+            O_row: List[bool] = []
+            cells = row.split(' ')
+            if len(cells) != width:
+                raise InvalidBoardStringException(f"Incorrect number of items in a line: {row}")
+            
+            for cell in cells:
+                match cell:
+                    case "X":
+                        X_row.append(True)
+                        O_row.append(False)
+                    case "O":
+                        X_row.append(False)
+                        O_row.append(True)
+                    case "_":
+                        X_row.append(False)
+                        O_row.append(False)
+                    case _:
+                        raise InvalidBoardStringException(f"Invalid character \"{cell}\"")
+            
+            X_table.append(tuple(X_row))
+            O_table.append(tuple(O_row))
+        
+        return Board(is_X_turn=is_X_turn, X_table=tuple(X_table), O_table=tuple(O_table))
+    
+    def to_compact_string(self) -> str:
+        board_string = ""
+        for row in range(height):
+            row_string = ""
+            for col in range(width):
+                if self.X_table[row][col]:
+                    row_string += "X"
+                elif self.O_table[row][col]:
+                    row_string += "O"
+                else:
+                    row_string += "_"
+                if col != width - 1:
+                    row_string += " "
+            board_string += row_string
+            if row != height - 1:
+                board_string += "  "
+        if self.is_X_turn:
+            board_string += "|T"
+        else:
+            board_string += "|F"
+        return board_string
+    
+    def __eq__(self, other):
+        if not isinstance(other, Board):
+            return False
+        return self.is_X_turn == other.is_X_turn and \
+            self.X_table == other.X_table and self.O_table == other.O_table
