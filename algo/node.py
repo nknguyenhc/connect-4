@@ -42,14 +42,14 @@ class MctsNode:
         for action in actions:
             self.children.append(MctsNode(self.board.move(action), parent=self, move=action))
         
-        index = randint(0, len(actions))
+        index = randint(0, len(actions) - 1)
         return self.children[index]
     
     def simulate(self) -> float:
         board = self.board
         while board.winner == State.UNDETERMINED:
             actions = board.actions()
-            index = randint(0, len(actions))
+            index = randint(0, len(actions) - 1)
             board = board.move(actions[index])
         
         if board.winner == State.DRAW:
