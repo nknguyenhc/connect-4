@@ -1,6 +1,7 @@
 from typing import Literal, List, Tuple
+from copy import deepcopy
 
-from config import height, width, connect
+from config import height, width, connect, steal
 
 class State:
     UNDETERMINED = 0
@@ -20,7 +21,9 @@ class InvalidBoardStringException(Exception):
 
 class Board:
     def __init__(self, is_X_turn: bool=True,
-                 X_table: Tuple[Tuple[bool, ...], ...]=None, O_table: Tuple[Tuple[bool, ...], ...]=None):
+                 X_table: Tuple[Tuple[bool, ...], ...]=None, O_table: Tuple[Tuple[bool, ...], ...]=None,
+                 move_count: int=0,
+                 ):
         """Instantiates a new table.
         Either:
         1. Both `X_table` and `O_table` are left blank, or
@@ -33,6 +36,7 @@ class Board:
             self.X_table = tuple(tuple(False for _ in range(width)) for _ in range(height))
             self.O_table = tuple(tuple(False for _ in range(width)) for _ in range(height))
         self.is_X_turn = is_X_turn
+        self.move_count = move_count
         self._determine_winner()
     
     def actions(self) -> List[int]:
@@ -43,7 +47,17 @@ class Board:
         for col in range(width):
             if self._is_column_movable(col):
                 actions.append(col)
+        if self.move_count == 1 and steal:
+            actions.append(-1)
         return actions
+    
+    def is_valid_action(self, col: int) -> bool:
+        """Determines if the action is valid.
+        Only to be used when interacting with the user.
+        """
+        if col == -1:
+            return self.move_count == 1 and steal and not self.is_X_turn
+        return col >= 0 and col < width and self._is_column_movable(col)
 
     def _is_column_movable(self, col: int) -> bool:
         """Determines if a piece can be added at the column.
@@ -107,6 +121,11 @@ class Board:
         """Makes a move at the indicated column.
         Returns a new instance of `Board`.
         """
+        if col == -1:
+            assert self.move_count == 1 and steal and not self.is_X_turn
+            new_O_table = deepcopy(self.X_table)
+            new_X_table = tuple(tuple(False for _ in range(width)) for _ in range(height))
+            return Board(is_X_turn=True, X_table=new_X_table, O_table=new_O_table, move_count=2)
         for row in range(height):
             if self.X_table[row][col] or self.O_table[row][col]:
                 continue
@@ -124,7 +143,7 @@ class Board:
                         True if i == row and j == col else cell for j, cell in enumerate(table_row)
                     ) for i, table_row in enumerate(self.O_table)
                 )
-            return Board(is_X_turn=not self.is_X_turn, X_table=new_X_table, O_table=new_O_table)
+            return Board(is_X_turn=not self.is_X_turn, X_table=new_X_table, O_table=new_O_table, move_count=self.move_count + 1)
         
         assert False, "Invalid move!"
     
@@ -171,6 +190,7 @@ class Board:
         
         X_table: List[Tuple[bool, ...]] = []
         O_table: List[Tuple[bool, ...]] = []
+        move_count: int = 0
         for row in items:
             X_row: List[bool] = []
             O_row: List[bool] = []
@@ -183,9 +203,11 @@ class Board:
                     case "X":
                         X_row.append(True)
                         O_row.append(False)
+                        move_count += 1
                     case "O":
                         X_row.append(False)
                         O_row.append(True)
+                        move_count += 1
                     case "_":
                         X_row.append(False)
                         O_row.append(False)
@@ -195,7 +217,7 @@ class Board:
             X_table.append(tuple(X_row))
             O_table.append(tuple(O_row))
         
-        return Board(is_X_turn=is_X_turn, X_table=tuple(X_table), O_table=tuple(O_table))
+        return Board(is_X_turn=is_X_turn, X_table=tuple(X_table), O_table=tuple(O_table), move_count=move_count)
     
     def to_compact_string(self) -> str:
         board_string = ""

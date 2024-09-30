@@ -29,4 +29,6 @@ python -m main
 
 You can configure the game to your liking in `config.py`.
 
-However, note that the unit tests only passes for the indicated config for `height`, `width` and `connect`.
+However, note that the unit tests only passes for the indicated config for `height`, `width`, `connect`, and `steal`.
+
+If you play steal mode, as second player, you can steal the first move from the first player, only for your first move. Key in `0` to steal.

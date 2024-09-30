@@ -19,7 +19,7 @@ class MctsNode:
     def _ucb(self) -> float:
         if self.N == 0:
             return float('inf')
-        return -self.U / self.N + math.sqrt(math.log(self.parent.N) / self.N)
+        return -self.U / self.N + math.sqrt(math.log(self.parent.N) / self.N) * MctsNode.C
     
     def select(self) -> "MctsNode":
         if self.children is None:

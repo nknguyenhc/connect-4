@@ -13,9 +13,10 @@ def main():
             while True:
                 try:
                     response = int(response) - 1
-                    if response < 0 or response >= width:
+                    if not board.is_valid_action(response):
                         response = input("Invalid move, try again: ")
-                    break
+                    else:
+                        break
                 except ValueError:
                     response = input("Not an integer, try again: ")
             
@@ -24,7 +25,10 @@ def main():
         else:
             # algo turn
             move = algo.next_move(board, time_control)
-            print(f"Algo choose: {move + 1}")
+            if move == -1:
+                print("Algo choose: steal")
+            else:
+                print(f"Algo choose: {move + 1}")
             board = board.move(move)
     
     print(board)

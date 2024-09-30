@@ -81,6 +81,19 @@ class BoardTest(unittest.TestCase):
         board = board.move(6)
         self.assertEqual(State.X, board.winner)
     
+    def test_steal(self):
+        board = Board()
+        board = board.move(4)
+        board = board.move(-1)
+        board = board.move(3)
+        board = board.move(4)
+        board = board.move(2)
+        board = board.move(4)
+        board = board.move(1)
+        self.assertEqual(State.UNDETERMINED, board.winner)
+        board = board.move(4)
+        self.assertEqual(State.O, board.winner)
+    
     def test_compact_string(self):
         board = Board()
         board = board.move(0)
