@@ -30,6 +30,7 @@ class Codingame:
             elif opp_previous_action != -1:
                 board = board.move(opp_previous_action)
             action = algo.next_move(board, time_control)
+            board = board.move(action)
 
             # Write an action using print
             # To debug: print("Debug messages...", file=sys.stderr, flush=True)

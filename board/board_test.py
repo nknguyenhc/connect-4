@@ -95,6 +95,12 @@ class BoardTest(unittest.TestCase):
             board = board.move(6)
         self.assertEqual(State.DRAW, board.winner)
     
+    def test_filled(self):
+        board = Board()
+        for i in range(6):
+            board = board.move(2)
+        self.assertEqual({0, 1, 3, 4, 5, 6}, set(board.actions()))
+    
     def test_steal(self):
         board = Board()
         board = board.move(4)
