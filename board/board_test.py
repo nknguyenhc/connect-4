@@ -81,6 +81,20 @@ class BoardTest(unittest.TestCase):
         board = board.move(6)
         self.assertEqual(State.X, board.winner)
     
+    def test_draw(self):
+        board = Board()
+        for i in range(6):
+            for j in range(3):
+                if i % 2 == 0:
+                    board = board.move(j)
+                    board = board.move(3 + j)
+                else:
+                    board = board.move(3 + j)
+                    board = board.move(j)
+        for i in range(6):
+            board = board.move(6)
+        self.assertEqual(State.DRAW, board.winner)
+    
     def test_steal(self):
         board = Board()
         board = board.move(4)

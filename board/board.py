@@ -61,11 +61,8 @@ class Board:
     def _is_column_movable(self, col: int) -> bool:
         """Determines if a piece can be added at the column.
         """
-        for row in range(height):
-            if not (self.X_table >> (row * width + col) & 1) \
-                and not (self.O_table >> (row * width + col) & 1):
-                return True
-        return False
+        return not (self.X_table >> ((height - 1) * width + col) & 1) \
+            and not (self.O_table >> ((height - 1) * width + col) & 1)
     
     def _determine_winner(self) -> None:
         """Assigns to `self.winner` the correct winner at this state.
@@ -111,12 +108,7 @@ class Board:
         return True
     
     def _is_terminal(self) -> bool:
-        for row in range(height):
-            for col in range(width):
-                if not (self.X_table >> (row * width + col) & 1) \
-                    and not (self.O_table >> (row * width + col) & 1):
-                    return False
-        return True
+        return self.move_count == height * width
     
     def move(self, col: int) -> "Board":
         """Makes a move at the indicated column.
