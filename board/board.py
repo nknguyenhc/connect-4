@@ -1,5 +1,6 @@
 from typing import Literal, List, Tuple
 from copy import deepcopy
+import numpy as np
 
 from config import height, width, connect, steal
 
@@ -21,7 +22,7 @@ class InvalidBoardStringException(Exception):
 
 class Board:
     def __init__(self, is_X_turn: bool=True,
-                 X_table: Tuple[Tuple[bool, ...], ...]=None, O_table: Tuple[Tuple[bool, ...], ...]=None,
+                 X_table: np.ndarray=None, O_table: np.ndarray=None,
                  move_count: int=0,
                  ):
         """Instantiates a new table.
@@ -29,12 +30,12 @@ class Board:
         1. Both `X_table` and `O_table` are left blank, or
         2. Both `X_table` and `O_table` are provided with the correct dimension.
         """
-        if X_table and O_table:
+        if X_table is not None and O_table is not None:
             self.X_table = X_table
             self.O_table = O_table
         else:
-            self.X_table = tuple(tuple(False for _ in range(width)) for _ in range(height))
-            self.O_table = tuple(tuple(False for _ in range(width)) for _ in range(height))
+            self.X_table = np.array(tuple(tuple(False for _ in range(width)) for _ in range(height)))
+            self.O_table = np.array(tuple(tuple(False for _ in range(width)) for _ in range(height)))
         self.is_X_turn = is_X_turn
         self.move_count = move_count
         self._determine_winner()
@@ -98,7 +99,7 @@ class Board:
                     return True
         return False
     
-    def _is_direction_winning(self, arr: Tuple[Tuple[bool, ...], ...], row: int, col: int,
+    def _is_direction_winning(self, arr: np.ndarray, row: int, col: int,
                               dir: Tuple[Literal[-1, 0, 1], Literal[-1, 0, 1]]) -> bool:
         end_row = row + dir[0] * (connect - 1)
         end_col = col + dir[1] * (connect - 1)
@@ -124,25 +125,26 @@ class Board:
         if col == -1:
             assert self.move_count == 1 and steal and not self.is_X_turn
             new_O_table = deepcopy(self.X_table)
-            new_X_table = tuple(tuple(False for _ in range(width)) for _ in range(height))
+            new_X_table = np.array(
+                tuple(tuple(False for _ in range(width)) for _ in range(height)))
             return Board(is_X_turn=True, X_table=new_X_table, O_table=new_O_table, move_count=2)
         for row in range(height):
             if self.X_table[row][col] or self.O_table[row][col]:
                 continue
             if self.is_X_turn:
-                new_X_table = tuple(
+                new_X_table = np.array(tuple(
                     tuple(
                         True if i == row and j == col else cell for j, cell in enumerate(table_row)
                     ) for i, table_row in enumerate(self.X_table)
-                )
+                ))
                 new_O_table = self.O_table
             else:
                 new_X_table = self.X_table
-                new_O_table = tuple(
+                new_O_table = np.array(tuple(
                     tuple(
                         True if i == row and j == col else cell for j, cell in enumerate(table_row)
                     ) for i, table_row in enumerate(self.O_table)
-                )
+                ))
             return Board(is_X_turn=not self.is_X_turn, X_table=new_X_table, O_table=new_O_table, move_count=self.move_count + 1)
         
         assert False, "Invalid move!"
@@ -217,7 +219,10 @@ class Board:
             X_table.append(tuple(X_row))
             O_table.append(tuple(O_row))
         
-        return Board(is_X_turn=is_X_turn, X_table=tuple(X_table), O_table=tuple(O_table), move_count=move_count)
+        return Board(is_X_turn=is_X_turn,
+                     X_table=np.array(tuple(X_table)),
+                     O_table=np.array(tuple(O_table)),
+                     move_count=move_count)
     
     def to_compact_string(self) -> str:
         board_string = ""
@@ -245,4 +250,5 @@ class Board:
         if not isinstance(other, Board):
             return False
         return self.is_X_turn == other.is_X_turn and \
-            self.X_table == other.X_table and self.O_table == other.O_table
+            (self.X_table == other.X_table).all() and \
+            (self.O_table == other.O_table).all()
