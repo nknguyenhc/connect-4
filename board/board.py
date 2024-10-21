@@ -19,8 +19,14 @@ class InvalidBoardStringException(Exception):
         super().__init__(message)
 
 class Board:
+    directions = [
+        (0, 1), (1, 1), (1, 0), (1, -1),
+        (0, -1), (-1, -1), (-1, 0), (-1, 1),
+    ]
+
     def __init__(self, is_X_turn: bool=True,
                  X_table: int=None, O_table: int=None,
+                 last_move: Tuple[int, int]=None,
                  move_count: int=0,
                  ):
         """Instantiates a new table.
@@ -28,15 +34,19 @@ class Board:
         1. Both `X_table` and `O_table` are left blank, or
         2. Both `X_table` and `O_table` are provided with the correct dimension.
         """
+        self.is_X_turn = is_X_turn
+        self.move_count = move_count
         if X_table is not None and O_table is not None:
             self.X_table = X_table
             self.O_table = O_table
+            if last_move is None:
+                self.winner = State.UNDETERMINED
+            else:
+                self._determine_winner(last_move)
         else:
             self.X_table = 0
             self.O_table = 0
-        self.is_X_turn = is_X_turn
-        self.move_count = move_count
-        self._determine_winner()
+            self.winner = State.UNDETERMINED
     
     def actions(self) -> List[int]:
         """Returns the set of possible actions in this state.
@@ -64,46 +74,39 @@ class Board:
         return not (self.X_table >> ((height - 1) * width + col) & 1) \
             and not (self.O_table >> ((height - 1) * width + col) & 1)
     
-    def _determine_winner(self) -> None:
+    def _determine_winner(self, last_move: Tuple[int, int]) -> None:
         """Assigns to `self.winner` the correct winner at this state.
         """
-        if self._is_winner(self.X_table):
+        if self._is_winner(self.X_table, last_move):
             self.winner = State.X
-        elif self._is_winner(self.O_table):
+        elif self._is_winner(self.O_table, last_move):
             self.winner = State.O
         elif self._is_terminal():
             self.winner = State.DRAW
         else:
             self.winner = State.UNDETERMINED
     
-    def _is_winner(self, arr: int) -> bool:
+    def _is_winner(self, arr: int, last_move: Tuple[int, int]) -> bool:
         """Checks in the following directions at each cell:
         1. Rightwards
         2. Right-downwards
         3. Downwards
         4. Left-downwards
         """
-        for row in range(height):
-            for col in range(width):
-                if self._is_direction_winning(arr, row, col, (0, 1)):
-                    return True
-                elif self._is_direction_winning(arr, row, col, (1, 1)):
-                    return True
-                elif self._is_direction_winning(arr, row, col, (1, 0)):
-                    return True
-                elif self._is_direction_winning(arr, row, col, (1, -1)):
-                    return True
+        for direction in Board.directions:
+            if self._is_direction_winning(arr, last_move, direction):
+                return True
         return False
     
-    def _is_direction_winning(self, arr: int, row: int, col: int,
+    def _is_direction_winning(self, arr: int, position: Tuple[int, int],
                               dir: Tuple[Literal[-1, 0, 1], Literal[-1, 0, 1]]) -> bool:
-        end_row = row + dir[0] * (connect - 1)
-        end_col = col + dir[1] * (connect - 1)
+        end_row = position[0] + dir[0] * (connect - 1)
+        end_col = position[1] + dir[1] * (connect - 1)
         if end_row < 0 or end_row >= height or end_col < 0 or end_col >= width:
             return False
         
         for i in range(connect):
-            if not (arr >> ((row + dir[0] * i) * width + (col + dir[1] * i)) & 1):
+            if not (arr >> ((position[0] + dir[0] * i) * width + (position[1] + dir[1] * i)) & 1):
                 return False
         return True
     
@@ -116,20 +119,27 @@ class Board:
         """
         if col == -1:
             assert self.move_count == 1 and steal and not self.is_X_turn
-            new_O_table = self.X_table
-            new_X_table = 0
-            return Board(is_X_turn=True, X_table=new_X_table, O_table=new_O_table, move_count=2)
+            return Board(is_X_turn=True, X_table=0, O_table=self.X_table, move_count=2)
         for row in range(height):
             if (self.X_table >> (row * width + col) & 1) \
                 or (self.O_table >> (row * width + col) & 1):
                 continue
             if self.is_X_turn:
-                new_X_table = self.X_table + 2 ** (row * width + col)
-                new_O_table = self.O_table
+                return Board(
+                    is_X_turn=not self.is_X_turn,
+                    X_table=self.X_table + 2 ** (row * width + col),
+                    O_table=self.O_table,
+                    last_move=(row, col),
+                    move_count=self.move_count + 1,
+                )
             else:
-                new_X_table = self.X_table
-                new_O_table = self.O_table + 2 ** (row * width + col)
-            return Board(is_X_turn=not self.is_X_turn, X_table=new_X_table, O_table=new_O_table, move_count=self.move_count + 1)
+                return Board(
+                    is_X_turn=not self.is_X_turn,
+                    X_table=self.X_table,
+                    O_table=self.O_table + 2 ** (row * width + col),
+                    last_move=(row, col),
+                    move_count=self.move_count + 1,
+                )
         
         assert False, "Invalid move!"
     
