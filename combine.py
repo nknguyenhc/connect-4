@@ -10,7 +10,6 @@ def read_file(file_path: str) -> str:
 def get_config():
     return {
         "initials": "from typing import Literal, List, Tuple\n" \
-                    "from copy import deepcopy\n" \
                     "from random import randint\n" \
                     "import math\n" \
                     "from time import time\n" \
