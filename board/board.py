@@ -19,10 +19,28 @@ class InvalidBoardStringException(Exception):
         super().__init__(message)
 
 class Board:
-    directions = [
-        (0, 1), (1, 1), (1, 0), (1, -1),
-        (0, -1), (-1, -1), (-1, 0), (-1, 1),
-    ]
+    def get_winning_lines() -> List[List[List[int]]]:
+        directions = [
+            (0, 1), (1, 1), (1, 0), (1, -1),
+            (0, -1), (-1, -1), (-1, 0), (-1, 1),
+        ]
+        winning_lines = [[None for i in range(width)] for j in range(height)]
+        for i in range(height):
+            for j in range(width):
+                lines = []
+                for direction in directions:
+                    i_ = i + direction[0] * (connect - 1)
+                    j_ = j + direction[1] * (connect - 1)
+                    if i_ < 0 or i_ >= height or j_ < 0 or j_ >= width:
+                        continue
+                    line = 0
+                    for k in range(connect):
+                        line += 2 ** ((i + direction[0] * k) * width + (j + direction[1] * k))
+                    lines.append(line)
+                winning_lines[i][j] = lines
+        return winning_lines
+
+    WINNING_LINES = get_winning_lines()
 
     def __init__(self, is_X_turn: bool=True,
                  X_table: int=None, O_table: int=None,
@@ -93,22 +111,10 @@ class Board:
         3. Downwards
         4. Left-downwards
         """
-        for direction in Board.directions:
-            if self._is_direction_winning(arr, last_move, direction):
+        for winning_line in Board.WINNING_LINES[last_move[0]][last_move[1]]:
+            if arr & winning_line == winning_line:
                 return True
         return False
-    
-    def _is_direction_winning(self, arr: int, position: Tuple[int, int],
-                              dir: Tuple[Literal[-1, 0, 1], Literal[-1, 0, 1]]) -> bool:
-        end_row = position[0] + dir[0] * (connect - 1)
-        end_col = position[1] + dir[1] * (connect - 1)
-        if end_row < 0 or end_row >= height or end_col < 0 or end_col >= width:
-            return False
-        
-        for i in range(connect):
-            if not (arr >> ((position[0] + dir[0] * i) * width + (position[1] + dir[1] * i)) & 1):
-                return False
-        return True
     
     def _is_terminal(self) -> bool:
         return self.move_count == height * width
