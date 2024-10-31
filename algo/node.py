@@ -6,7 +6,7 @@ from board import Board, State
 
 class MctsNode:
     WIN = 1
-    C = 1.4
+    C = 1
 
     def __init__(self, board: Board, parent: "MctsNode"=None, move: int=None):
         self.N: int = 0
