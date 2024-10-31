@@ -1,4 +1,5 @@
-from typing import Literal, List, Tuple
+from typing import List, Tuple
+import os
 
 from config import height, width, connect, steal
 
@@ -19,7 +20,7 @@ class InvalidBoardStringException(Exception):
         super().__init__(message)
 
 class Board:
-    def get_winning_lines() -> List[List[List[int]]]:
+    def _get_winning_lines() -> List[List[List[int]]]:
         directions = [
             (0, 1), (1, 1), (1, 0), (1, -1),
             (0, -1), (-1, -1), (-1, 0), (-1, 1),
@@ -40,12 +41,14 @@ class Board:
                 winning_lines[i][j] = lines
         return winning_lines
 
-    WINNING_LINES = get_winning_lines()
+    WINNING_LINES = _get_winning_lines()
+    DEFAULT_ACTIONS = [i for i in range(width)]
 
     def __init__(self, is_X_turn: bool=True,
                  X_table: int=None, O_table: int=None,
                  last_move: Tuple[int, int]=None,
                  move_count: int=0,
+                 actions: List[int]=DEFAULT_ACTIONS,
                  ):
         """Instantiates a new table.
         Either:
@@ -65,11 +68,25 @@ class Board:
             self.X_table = 0
             self.O_table = 0
             self.winner = State.UNDETERMINED
+        if actions is not None:
+            self._actions = actions
+        else:
+            self._actions = self._find_actions()
     
     def actions(self) -> List[int]:
         """Returns the set of possible actions in this state.
         Each action is an int indicating the column to move at.
         """
+        if steal and self.move_count == 1:
+            return self._actions + [-1]
+        else:
+            return self._actions
+    
+    def _find_actions(self) -> List[int]:
+        """Returns the set of possible actions in this state.
+        Each action is an int indicating the column to move at.
+        """
+        assert os.environ.get("APP_TESTING") == "True"
         actions: List[int] = []
         for col in range(width):
             if self._is_column_movable(col):
@@ -82,9 +99,7 @@ class Board:
         """Determines if the action is valid.
         Only to be used when interacting with the user.
         """
-        if col == -1:
-            return self.move_count == 1 and steal and not self.is_X_turn
-        return col >= 0 and col < width and self._is_column_movable(col)
+        return col in self._actions
 
     def _is_column_movable(self, col: int) -> bool:
         """Determines if a piece can be added at the column.
@@ -125,11 +140,15 @@ class Board:
         """
         if col == -1:
             assert self.move_count == 1 and steal and not self.is_X_turn
-            return Board(is_X_turn=True, X_table=0, O_table=self.X_table, move_count=2)
+            return Board(is_X_turn=True, X_table=0, O_table=self.X_table, move_count=2, actions=self._actions)
         for row in range(height):
             if (self.X_table >> (row * width + col) & 1) \
                 or (self.O_table >> (row * width + col) & 1):
                 continue
+            next_actions = self._actions
+            if row == height - 1:
+                next_actions = next_actions.copy()
+                next_actions.remove(col)
             if self.is_X_turn:
                 return Board(
                     is_X_turn=not self.is_X_turn,
@@ -137,6 +156,7 @@ class Board:
                     O_table=self.O_table,
                     last_move=(row, col),
                     move_count=self.move_count + 1,
+                    actions=next_actions,
                 )
             else:
                 return Board(
@@ -145,6 +165,7 @@ class Board:
                     O_table=self.O_table + 2 ** (row * width + col),
                     last_move=(row, col),
                     move_count=self.move_count + 1,
+                    actions=next_actions,
                 )
         
         assert False, "Invalid move!"
@@ -232,7 +253,8 @@ class Board:
         return Board(is_X_turn=is_X_turn,
                      X_table=X_int,
                      O_table=O_int,
-                     move_count=move_count)
+                     move_count=move_count,
+                     actions=None)
     
     def to_compact_string(self) -> str:
         board_string = ""
