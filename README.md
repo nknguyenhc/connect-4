@@ -1,6 +1,8 @@
 # connect-4
 Engine to play connect-4
 
+![Codingame Ranking](./codingame.png)
+
 ## Usage
 
 1. Make sure you have Python of version at least 3.11. Check your python version:
